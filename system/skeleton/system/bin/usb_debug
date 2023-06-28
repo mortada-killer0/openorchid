@@ -1,0 +1,45 @@
+#!/system/bin/sh
+
+# Check if user is running as root
+if [ "$(id -u)" -ne 0 ]; then
+  echo "This script must be run as root."
+  exit 1
+fi
+
+# Check if ADB is installed
+if ! command -v adb &> /dev/null; then
+  echo "ADB is not installed."
+  exit 1
+fi
+
+# Parse command-line arguments
+if [ "$1" == "enable" ]; then
+  setprop system.usb_debug.enabled=true
+  adb devices > /dev/null 2>&1
+  if [ $? -eq 0 ]; then
+    echo "ADB USB debugging is already enabled."
+    exit 0
+  else
+    adb usb
+    if [ $? -eq 0 ]; then
+      echo "ADB USB debugging enabled."
+      exit 0
+    else
+      echo "Failed to enable ADB USB debugging."
+      exit 1
+    fi
+  fi
+elif [ "$1" == "disable" ]; then
+  setprop system.usb_debug.enabled=false
+  adb kill-server
+  if [ $? -eq 0 ]; then
+    echo "ADB USB debugging disabled."
+    exit 0
+  else
+    echo "Failed to disable ADB USB debugging."
+    exit 1
+  fi
+else
+  echo "Usage: $0 {enable|disable}"
+  exit 1
+fi

@@ -1,0 +1,76 @@
+#!/system/bin/sh
+
+# Function to display usage message
+usage() {
+  echo "Usage: $(basename "$0") [-c]"
+  echo "Options:"
+  echo "  -c   Output device type name in camel case"
+  exit 1
+}
+
+# Determine device type based on hardware information
+device_type="generic"
+device_name="Generic Device"
+
+# Check architecture
+case "$(uname -m)" in
+  x86_64|i*86)
+    if grep -qi 'laptop' /sys/devices/virtual/dmi/id/product_name; then
+      device_type="laptop"
+      device_name="Laptop"
+    else
+      device_type="desktop"
+      device_name="Desktop"
+    fi
+    ;;
+  arm*)
+    if grep -qi 'laptop' /sys/devices/virtual/dmi/id/product_name; then
+      device_type="laptop"
+      device_name="Laptop"
+    elif grep -qi 'desktop' /sys/devices/virtual/dmi/id/product_name; then
+      device_type="desktop"
+      device_name="Desktop"
+    elif grep -qi 'tablet' /sys/devices/virtual/dmi/id/product_name; then
+      device_type="tablet"
+      device_name="Tablet"
+    elif grep -qi 'tv' /sys/devices/virtual/dmi/id/product_name; then
+      device_type="tv"
+      device_name="TV"
+    elif grep -qi 'wearable' /sys/devices/virtual/dmi/id/product_name; then
+      device_type="wearable"
+      device_name="Wearable"
+    else
+      device_type="phone"
+      device_name="Phone"
+    fi
+    ;;
+  *)
+    echo "Unknown device type for hardware: $(uname -m)"
+    exit 1
+    ;;
+esac
+
+# Parse command line options
+camel_case=false
+while getopts ":c" opt; do
+  case $opt in
+    c)
+      camel_case=true
+      ;;
+    \?)
+      echo "Invalid option: -$OPTARG" >&2
+      usage
+      ;;
+    :)
+      echo "Option -$OPTARG requires an argument." >&2
+      usage
+      ;;
+  esac
+done
+
+# Output device type/form name
+if [ "$camel_case" = true ]; then
+  echo "$device_name"
+else
+  echo "$device_type"
+fi

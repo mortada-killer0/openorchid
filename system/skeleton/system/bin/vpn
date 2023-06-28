@@ -1,0 +1,131 @@
+#!/system/bin/sh
+
+# vpn - A command-line tool to add, remove, start, stop, and list VPNs using PPP and WPA Supplicant
+
+function usage {
+  echo "Usage: vpn {add|remove|start|stop|list} [name] [ssid] [username] [password]"
+}
+
+function add_vpn {
+  if [ $# -lt 1 ]; then
+    echo "Error: Missing VPN name"
+    usage
+    exit 1
+  fi
+  name=$1
+  ssid="$2"
+  username="$3"
+  password="$4"
+  echo "Adding VPN '$name' with SSID '$ssid'"
+  cat << EOF > /system/etc/wpa_supplicant/vpn_$name.conf
+ctrl_interface=/data/run/wpa_supplicant
+ctrl_interface_group=wheel
+
+network={
+  ssid=\"$ssid\"
+  key_mgmt=WPA-EAP
+  eap=PEAP
+  identity=\"$username\"
+  password=\"$password\"
+  phase1=\"peaplabel=0\"
+  phase2=\"auth=MSCHAPV2\"
+}
+EOF
+  cat << EOF > /system/etc/ppp/peers/$name
+noauth
+refuse-pap
+refuse-eap
+refuse-chap
+refuse-mschap
+require-mschap-v2
+persist
+mtu 1396
+mru 1396
+defaultroute
+usepeerdns
+lcp-echo-interval 20
+lcp-echo-failure 3
+connect \"/sbin/chat -v -f /system/etc/ppp/peers/$name.chat\"
+EOF
+  cat << EOF > /system/etc/ppp/peers/$name.chat
+ABORT \"NO CARRIER\"
+ABORT \"ERROR\"
+ABORT \"NO DIALTONE\"
+ABORT \"BUSY\"
+ABORT \"NO ANSWER\"
+\"\" ATZ
+OK AT+CGDCONT=1,\"IP\",\"internet\"
+OK ATD*99#
+CONNECT
+EOF
+  echo "VPN '$name' added successfully"
+}
+
+function remove_vpn {
+  if [ $# -lt 1 ]; then
+    echo "Error: Missing VPN name"
+    usage
+    exit 1
+  fi
+  name=$1
+  echo "Removing VPN '$name'"
+  rm -f /system/etc/wpa_supplicant/vpn_$name.conf
+  rm -f /system/etc/ppp/peers/$name
+  rm -f /system/etc/ppp/peers/$name.chat
+  echo "VPN '$name' removed successfully"
+}
+
+function start_vpn {
+  if [ $# -lt 1 ]; then
+    echo "Error: Missing VPN name"
+    usage
+    exit 1
+  fi
+  name=$1
+  echo "Starting VPN '$name'"
+  pon $name
+  echo "VPN '$name' started successfully"
+}
+
+function stop_vpn {
+  if [ $# -lt 1 ]; then
+    echo "Error: Missing VPN name"
+    usage
+    exit 1
+  fi
+  name=$1
+  echo "Stopping VPN '$name'"
+  poff $name
+  echo "VPN '$name' stopped successfully"
+}
+
+function list_vpns {
+  echo "Available VPNs:"
+  for file in /system/etc/wpa_supplicant/vpn_*.conf; do
+    name=${file##*/}
+    name=${name%.*}
+    printf "$name "
+  done
+}
+
+case "$1" in
+  add)
+    add_vpn "$2"
+    ;;
+  remove)
+    remove_vpn "$2"
+    ;;
+  start)
+    start_vpn "$2"
+    ;;
+  stop)
+    stop_vpn "$2"
+    ;;
+  list)
+    list_vpns
+    ;;
+  *)
+    usage
+    exit 1
+    ;;
+esac

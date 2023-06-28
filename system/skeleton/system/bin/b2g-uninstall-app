@@ -1,0 +1,7 @@
+#!/system/bin/sh
+if [[ $# -ne 1 ]]; then
+  echo "Usage: b2g-uninstall-app <app_id>"
+  exit 1
+fi
+# Remove the app's directory in the device's webapps directory
+sudo rm -r /system/b2g/profile/webapps/"$1"

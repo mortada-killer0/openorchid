@@ -1,0 +1,5 @@
+#!/system/bin/sh
+if mount | grep -q '/data/media/sdcard'; then
+  umount /data/media/sdcard
+fi
+mount "$1" /data/media/sdcard

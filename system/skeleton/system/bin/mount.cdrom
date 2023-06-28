@@ -1,0 +1,5 @@
+#!/system/bin/sh
+if mount | grep -q '/data/media/cdrom'; then
+  umount /data/media/cdrom
+fi
+mount -o ro "$1" /data/media/cdrom

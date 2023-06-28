@@ -1,0 +1,59 @@
+#!/system/bin/sh
+# This script provides a simple interface for managing a LXD container
+# running a Debian-based GNU/Linux distribution inside OrchidOS.
+# ========
+# Set the container name as a variable
+CONTAINER_NAME="penguin"
+# Define the command to be executed based on the input arguments
+case "$1" in
+  create)
+    # Create a Linux container named "penguin"
+    lxc launch images:debian/11 $CONTAINER_NAME
+    ;;
+  start)
+    # Start the specified container
+    lxc start $CONTAINER_NAME
+    ;;
+  shell)
+    # Open a shell inside the specified container
+    lxc exec $CONTAINER_NAME -- /bin/bash
+    ;;
+  install)
+    # Install one or more packages inside the specified container
+    lxc exec $CONTAINER_NAME -- apt-get update && apt-get install \
+      -y "${@:2}"
+    ;;
+  remove)
+    # Remove one or more packages from the specified container
+    lxc exec $CONTAINER_NAME -- apt-get remove -y "${@:2}" && \
+      apt-get autoremove -y
+    ;;
+  update)
+    # Update packages from the specified container
+    lxc exec $CONTAINER_NAME -- apt-get update -y && apt-get upgrade -y
+    ;;
+  push)
+    # Copy a file from the host to the specified container
+    lxc file push "$2" "$CONTAINER_NAME/$3"
+    ;;
+  pull)
+    # Copy a file from the specified container to the host
+    lxc file pull "$CONTAINER_NAME/$2" "$3"
+    ;;
+  stop)
+    # Stop the specified container
+    lxc stop $CONTAINER_NAME
+    ;;
+  run)
+    # Set the LXC container name and GUI app command
+    container="$2"
+    command="$3"
+    # Start the LXC container
+    echo "Linux compatibility layer GUI support coming soon..."
+    ;;
+  *)
+    echo "Usage: $0 {create|start|shell|install|remove|update|push|pull|stop|run} [<container>|<packages>|<from_file>] [<to_file>]"
+    exit 1
+    ;;
+esac
+exit 0

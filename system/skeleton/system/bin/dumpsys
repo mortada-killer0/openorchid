@@ -1,0 +1,43 @@
+#!/system/bin/sh
+
+function dump_memory_usage {
+  free -h
+}
+
+function dump_cpu_usage {
+  top -b -n 1 | head -n 12
+}
+
+function dump_battery_info {
+  acpi -V
+}
+
+function dump_network_info {
+  ifconfig -a
+}
+
+function dump_system_services {
+  systemctl list-units --state=running
+}
+
+case "$1" in
+  meminfo)
+    dump_memory_usage
+    ;;
+  cpuinfo)
+    dump_cpu_usage
+    ;;
+  batteryinfo)
+    dump_battery_info
+    ;;
+  netinfo)
+    dump_network_info
+    ;;
+  services)
+    dump_system_services
+    ;;
+  *)
+    echo "Usage: $0 {meminfo|cpuinfo|batteryinfo|netinfo|services}"
+    exit 1
+    ;;
+esac

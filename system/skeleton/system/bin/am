@@ -1,0 +1,107 @@
+#!/system/bin/sh
+
+# Variables
+PACKAGE_NAME=""
+ACTIVITY_NAME=""
+ACTION=""
+DATA_URI=""
+MIME_TYPE=""
+CATEGORY=""
+EXTRA_KEY=""
+EXTRA_VALUE=""
+DEBUG=false
+
+# Usage function
+function usage() {
+  echo "Usage: $0 -p PACKAGE_NAME -a ACTIVITY_NAME [-c CATEGORY] [-d DATA_URI] [-t MIME_TYPE] [-e EXTRA_KEY EXTRA_VALUE] [-D]"
+  echo ""
+  echo "  -p, --package   The package name of the application to launch (required)"
+  echo "  -a, --activity  The name of the activity to launch (required)"
+  echo "  -c, --category  The category of the activity to launch (optional)"
+  echo "  -d, --data      The data URI to pass to the activity (optional)"
+  echo "  -t, --type      The MIME type of the data URI (optional)"
+  echo "  -e, --extra     The name and value of an extra parameter to pass to the activity (optional)"
+  echo "  -D, --debug     Display debug information (optional)"
+  echo ""
+  exit 1
+}
+
+# Parse command line arguments
+while [[ $# -gt 0 ]]
+do
+  key="$1"
+
+  case $key in
+    -p|--package)
+      PACKAGE_NAME="$2"
+      shift
+      shift
+      ;;
+    -a|--activity)
+      ACTIVITY_NAME="$2"
+      shift
+      shift
+      ;;
+    -c|--category)
+      CATEGORY="$2"
+      shift
+      shift
+      ;;
+    -d|--data)
+      DATA_URI="$2"
+      shift
+      shift
+      ;;
+    -t|--type)
+      MIME_TYPE="$2"
+      shift
+      shift
+      ;;
+    -e|--extra)
+      EXTRA_KEY="$2"
+      EXTRA_VALUE="$3"
+      shift
+      shift
+      shift
+      ;;
+    -D|--debug)
+      DEBUG=true
+      shift
+      ;;
+    *)
+      usage
+      ;;
+  esac
+done
+
+# Check if required arguments are provided
+if [[ -z "$PACKAGE_NAME" || -z "$ACTIVITY_NAME" ]]
+then
+  usage
+fi
+
+# Build the intent string
+INTENT="intent://$ACTIVITY_NAME"
+if [[ ! -z "$CATEGORY" ]]
+then
+  INTENT+="?category=$CATEGORY"
+fi
+if [[ ! -z "$DATA_URI" ]]
+then
+  INTENT+="#Intent;action=$ACTION;data=$DATA_URI;type=$MIME_TYPE"
+else
+  INTENT+="#Intent;action=$ACTION"
+fi
+if [[ ! -z "$EXTRA_KEY" && ! -z "$EXTRA_VALUE" ]]
+then
+  INTENT+=";S.$EXTRA_KEY=$EXTRA_VALUE"
+fi
+INTENT+=";end"
+
+# Launch the application/activity
+if [[ "$DEBUG" == true ]]
+then
+  echo "Launching $ACTIVITY_NAME in $PACKAGE_NAME with intent: $INTENT"
+fi
+
+xdg-open "$INTENT" >/dev/null 2>&1

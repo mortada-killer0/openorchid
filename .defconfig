@@ -1,0 +1,13 @@
+# System
+COMPILER_ARGS="-02"
+BUILD_STAGE_DIR="build_stage"
+SKELETON_PATH="system/skeleton"
+KERNEL_SRC_DIR="kernel"
+PACKAGE_DIRS="packages"
+DEVICE_DIRS="devices"
+
+# Packages
+PACKAGE_BUSYBOX=y
+PACKAGE_WPA_SUPPLICANT=y
+PACKAGE_WESTON=y
+PACKAGE_MESA=y

@@ -1,0 +1,9 @@
+#!/system/bin/bash
+# Check if system uses UEFI firmware
+if $(ls /sys/firmware/efi); then
+  # Find UEFI boot splash image
+  splash_path=$(find / -name splash.png -path */EFI/* 2>/dev/null)
+  if [[ -n $splash_path ]]; then
+    echo $splash_path
+  fi
+fi

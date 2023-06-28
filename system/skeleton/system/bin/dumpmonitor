@@ -1,0 +1,8 @@
+#!/system/bin/sh
+# Get the number of monitors connected
+num_monitors=$(xrandr --listactivemonitors | awk 'END {print NR}')
+# Get the resolution of each monitor
+resolutions=$(xrandr --listactivemonitors | awk '{print $NF}' | \
+              sed 's/\/.*//')
+# Print the number of monitors and resolutions
+echo "$num_monitors $resolutions"

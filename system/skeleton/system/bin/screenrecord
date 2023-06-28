@@ -1,0 +1,55 @@
+#!/system/bin/sh
+
+# Get the current timestamp
+timestamp=$(date +%Y%m%d_%H%M%S)
+
+# Set the output filename based on the timestamp
+output_dir="$XDG_VIDEOS_DIR/captures"
+output_file="screenrecord_$timestamp.webm"
+
+# Set default values
+audio=false
+mic=false
+paused=false
+filename="$output_dir/$output_file"
+pid=""
+
+# Parse command line arguments
+while getopts ":asvprk" opt; do
+  case ${opt} in
+  a ) audio=true;;
+  v ) mic=true;;
+  s ) # Start recording
+    if [ "$audio" = true ] && [ "$mic" = true ]; then
+      weston-screen-recorder -a -v "$filename" &
+    elif [ "$audio" = true ]; then
+      weston-screen-recorder -a "$filename" &
+    elif [ "$mic" = true ]; then
+      weston-screen-recorder -v "$filename" &
+    else
+      weston-screen-recorder "$filename" &
+    fi
+    pid=$!
+    ;;
+  p ) # Pause recording
+    if [ -n "$pid" ] && [ "$paused" = false ]; then
+      kill -SIGSTOP $pid
+      paused=true
+    fi
+    ;;
+  r ) # Resume recording
+    if [ -n "$pid" ] && [ "$paused" = true ]; then
+      kill -SIGCONT $pid
+      paused=false
+    fi
+    ;;
+  k ) # Stop recording
+    if [ -n "$pid" ]; then
+      kill -SIGINT $pid
+      pid=""
+    fi
+    ;;
+  \? ) echo "Usage: $0 [-a] [-v] [-s] [-p] [-r] [-k]" >&2
+    exit 1;;
+  esac
+done

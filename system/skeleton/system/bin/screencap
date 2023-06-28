@@ -1,0 +1,11 @@
+#!/system/bin/sh
+# Get the current timestamp
+timestamp=$(date +%Y%m%d_%H%M%S)
+# Set the output filename based on the timestamp
+output_dir="$XDG_PICTURES_DIR/screenshots"
+output_file="screenshot_$timestamp.png"
+# Use the `weston-screenshooter` command to take a screenshot
+mkdir -p $output_dir
+weston-screenshooter -o "$output_dir/$output_file"
+# Display a message indicating the output filename
+echo "Screenshot saved as $output_file"

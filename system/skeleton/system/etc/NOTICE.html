@@ -1,0 +1,101 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <title>NOTICE.html</title>
+  <style>
+    body {
+      font-family: Roboto, sans-serif;
+      font-size: 16px;
+      line-height: 1.5;
+      padding: 16px;
+      background: #f4f7ff;
+      color: #333;
+    }
+    h1 {
+      font-size: 24px;
+      margin-bottom: 8px;
+    }
+    h2 {
+      font-size: 18px;
+      margin-bottom: 8px;
+    }
+    h3 {
+      font-size: 16px;
+      margin-bottom: 8px;
+    }
+    p, ul {
+      margin-bottom: 16px;
+    }
+    ul {
+      padding-left: 0;
+      display: flex;
+      flex-direction: column;
+    }
+    ul li {
+      background: #fff;
+      padding: 12px 24px;
+      border-radius: 15px;
+      margin-bottom: 10px;
+      display: inline-block;
+    }
+    code {
+      background: #e7f3ff;
+      padding: 2px 4px;
+      border-radius: 3px;
+    }
+    .contact {
+      background: #e7f3ff;
+      padding: 12px 24px;
+      border-radius: 15px;
+      margin-bottom: 10px;
+      display: inline-block;
+    }
+    a[href] {
+      color: #0061e0;
+    }
+    @media (prefers-color-scheme: dark) {
+      body {
+        background: #000;
+        color: #f4f7ff;
+      }
+      ul li {
+        background: #212325;
+      }
+      code {
+        background: #303438;
+      }
+      .contact {
+        background: #101214;
+      }
+      a[href] {
+        color: #87cefa;
+      }
+    }
+  </style>
+</head>
+<body>
+  <h1>NOTICE.html</h1>
+  <p>This device is powered by Linux.</p>
+  <h2>Configuration Files</h2>
+  <ul>
+    <li><code>/system/etc/fonts.xml</code>: Font configuration file.</li>
+    <li><code>/system/etc/ppp/options</code>: PPP configuration options.</li>
+    <li><code>/system/etc/wifi/wpa_supplicant.conf</code>: Wi-Fi network configuration file.</li>
+    <li><code>/system/etc/bluetooth/main.conf</code>: Bluetooth configuration file.</li>
+    <li><code>/system/etc/clatd.conf</code>: IPv6-to-IPv4 address translator configuration file.</li>
+    <li><code>/system/etc/init.d</code>: System V init scripts directory.</li>
+    <li><code>/system/etc/nfc/libnfc.conf</code>: NFC configuration file.</li>
+    <li><code>/system/etc/qmi-network.conf</code>: QMI configuration file.</li>
+  </ul>
+  <h2>License Information</h2>
+  <p>This device uses software components that are subject to open source licenses. You can view the relevant license information by visiting the following links:</p>
+  <ul>
+    <li><a href="file:///system/usr/share/doc/libnl3/LICENSE">libnl3</a></li>
+    <li><a href="file:///system/usr/share/doc/libusb/LICENSE">libusb</a></li>
+    <li><a href="file:///system/usr/share/doc/libdbus-1/LICENSE">libdbus-1</a></li>
+    <li><a href="file:///system/usr/share/doc/bluez/LICENSE">bluez</a></li>
+  </ul>
+  <p class="contact">If you have any questions or concerns regarding the software components used in this device, please contact us at <a href="https://orchidos.github.io/support">https://orchidos.github.io/support</a>.</p>
+</body>
+</html>

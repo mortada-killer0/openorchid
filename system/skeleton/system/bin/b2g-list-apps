@@ -1,0 +1,3 @@
+#!/system/bin/sh
+# List all directories in the device's webapps directory
+ls /system/b2g/profile/webapps/ | tr '\n' ' ' | sed 's/ $/\n/'

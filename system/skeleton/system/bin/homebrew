@@ -1,0 +1,378 @@
+#!/system/bin/sh
+
+REPO_URL="https://orchidos.github.io/packages"
+MIRRORS_LIST_FILE="~/mirrors.list"
+USER_INSTALLED_DIR="/data/app"
+SYSTEM_INSTALLED_DIR="/system/app"
+
+# Function to display error messages
+show_error() {
+  echo "Error: $1" >&2
+}
+
+# Function to display info messages
+show_info() {
+  echo "Info: $1"
+}
+
+# Function to show progress bar
+show_progress() {
+  local progress_percentage="$1"
+  local progress_bar=""
+  local i
+  local tty_width=$(tput cols)  # Get terminal width
+  
+  # Calculate fill length based on progress percentage and terminal width
+  local fill_length=$((progress_percentage * tty_width / 100))
+  
+  for ((i=0; i<tty_width; i++)); do
+    if [ "$i" -lt "$fill_length" ]; then
+      progress_bar+="▇"
+    else
+      progress_bar+=" "
+    fi
+  done
+  
+  printf "\r[%s] %d%%" "$progress_bar" "$progress_percentage"
+}
+
+# Function to get the installed version of a package
+get_installed_version() {
+  local package_name="$1"
+  
+  # Check if the package is installed in the user's home directory
+  if [ -d "$USER_INSTALLED_DIR/$package_name" ]; then
+    local package_dir="$USER_INSTALLED_DIR/$package_name"
+  # Check if the package is installed in the system directory
+  elif [ -d "$SYSTEM_INSTALLED_DIR/$package_name" ]; then
+    local package_dir="$SYSTEM_INSTALLED_DIR/$package_name"
+  else
+    show_error "Package $package_name is not installed"
+    return 1
+  fi
+  
+  # Read the version file and extract the version number
+  local version_file="$package_dir/version.txt"
+  if [ -f "$version_file" ]; then
+    local installed_version="$(cat "$version_file")"
+    echo "$installed_version"
+  else
+    show_error "Failed to read version for package $package_name"
+    return 1
+  fi
+}
+
+# Function to get the latest version of a package from a remote source or a mirror list
+get_latest_version() {
+  local package_name="$1"
+  
+  # Fetch the latest version number from the remote source
+  local latest_version="$(curl -s "$REPO_URL/dist/$package_name/version.txt")"
+  if [ -n "$latest_version" ]; then
+    echo "$latest_version"
+    return 0
+  fi
+  
+  # Fetch the latest version number from the mirror list
+  local mirror_list="$(cat $MIRRORS_LIST_FILE)"
+  if [ -n "$mirror_list" ]; then
+    # Loop through the mirror list and try each mirror
+    local mirrors=($mirror_list)
+    for mirror in "${mirrors[@]}"; do
+      latest_version="$(curl -s "$mirror/$package_name/version.txt")"
+      if [ -n "$latest_version" ]; then
+        echo "$latest_version"
+        return 0
+      fi
+    done
+  fi
+  
+  show_error "Failed to fetch latest version for package $package_name from remote source or mirror list"
+  return 1
+}
+
+# Function to download a package from the repository
+download_package() {
+  local package_name="$1"
+  local package_arch="$2"
+  
+  # Read mirrors from the list file
+  local mirrors=()
+  if [ -f "$MIRRORS_LIST_FILE" ]; then
+    mapfile -t mirrors < "$MIRRORS_LIST_FILE"
+  fi
+  
+  if [ "${#mirrors[@]}" -eq 0 ]; then
+    show_error "No mirrors found in the list file $MIRRORS_LIST_FILE"
+    return 1
+  fi
+  
+  local success=false
+  local mirror_index=0
+  while ! $success && [ "$mirror_index" -lt "${#mirrors[@]}" ]; do
+    local mirror="${mirrors[mirror_index]}"
+    local package_url="$mirror/$REPO_URL/dist/$package_name/$package_arch/package.tar.gz"
+    
+    local install_dir=""
+    if [ "$(id -u)" -eq 0 ]; then
+      install_dir="$SYSTEM_INSTALLED_DIR/$package_name"
+    else
+      install_dir="$USER_INSTALLED_DIR/$package_name"
+    fi
+    
+    echo "Info: Downloading package $package_name for $package_arch from $mirror"
+    local temp_dir=$(mktemp -d)
+    local temp_file="$temp_dir/package.tar.gz"
+    
+    if ! curl -# -o "$temp_file" "$package_url"; then
+      rm -rf "$temp_dir"
+      echo "Info: Failed to download package $package_name from $mirror"
+      mirror_index=$((mirror_index + 1))
+    else
+      echo "Info: Installing package $package_name for $package_arch"
+      show_progress 100 0
+      
+      if ! tar -xzf "$temp_file" -C "$install_dir"; then
+        rm -rf "$temp_dir"
+        show_error "Failed to install package $package_name for $package_arch"
+        return 1
+      fi
+      
+      rm -rf "$temp_dir"
+      
+      echo
+      echo "Info: Package $package_name has been successfully installed"
+      success=true
+    fi
+  done
+  
+  if ! $success; then
+    show_error "Failed to download and install package $package_name for $package_arch from all mirrors"
+    return 1
+  fi
+  
+  return 0
+}
+
+# Function to install a package and its dependencies
+install_package() {
+  local package_name="$1"
+  
+  if [ -d "$USER_INSTALLED_DIR/$package_name" ] || [ -d "$SYSTEM_INSTALLED_DIR/$package_name" ]; then
+    show_info "Package $package_name is already installed"
+    return
+  fi
+  
+  local package_arch="$(uname -m)"
+  local package_dependencies=""
+  
+  if [ -f "$REPO_URL/dist/$package_name/$package_arch/dependencies.list" ]; then
+    package_dependencies=$(curl -sSfL "$REPO_URL/dist/$package_name/$package_arch/dependencies.list")
+  fi
+  
+  if [ -n "$package_dependencies" ]; then
+    show_info "The following dependencies will be installed: $package_dependencies"
+    read -rp "Do you want to continue? [Y/n] " user_input
+    if [[ ! $user_input =~ ^[Yy]$ ]] && [[ -n "$user_input" ]]; then
+      show_info "Skipping installation of $package_name"
+      return
+    fi
+  fi
+  
+  show_info "Installing package $package_name"
+  
+  if ! download_package "$package_name" "$package_arch"; then
+    show_error "Failed to install package $package_name"
+    return 1
+  fi
+  
+  # Install dependencies recursively
+  local num_dependencies=$(echo "$package_dependencies" | wc -w)
+  local current_dependency=0
+  
+  for dependency in $package_dependencies; do
+    current_dependency=$((current_dependency + 1))
+    local progress_percentage=$((current_dependency * 100 / num_dependencies))
+    
+    show_progress "$progress_percentage"
+    install_package "$dependency"
+  done
+  
+  # Move the installed package to the appropriate directory
+  mv "$package_name" "$USER_INSTALLED_DIR/$package_name"
+  
+  show_info "Package $package_name has been successfully installed"
+}
+
+# Function to remove a package
+remove_package() {
+  local package_name="$1"
+  
+  if ! rm -rf "$USER_INSTALLED_DIR/$package_name" "$SYSTEM_INSTALLED_DIR/$package_name"; then
+    show_error "Failed to remove package $package_name"
+    return 1
+  fi
+
+  show_info "Package $package_name has been successfully removed"
+}
+
+# Function to list all installed packages
+list_packages() {
+  local user_installed_packages=""
+  local system_installed_packages=""
+
+  if [ -d "$USER_INSTALLED_DIR" ]; then
+    user_installed_packages=$(ls -d "$USER_INSTALLED_DIR"/* 2>/dev/null)
+  fi
+
+  if [ -d "$SYSTEM_INSTALLED_DIR" ]; then
+    system_installed_packages=$(ls -d "$SYSTEM_INSTALLED_DIR"/* 2>/dev/null)
+  fi
+
+  if [ -z "$user_installed_packages" ] && [ -z "$system_installed_packages" ]; then
+    show_info "No packages are installed"
+  else
+    if [ -n "$user_installed_packages" ]; then
+      show_info "User installed packages:"
+      echo "$(basename $user_installed_packages)"
+    fi
+
+    if [ -n "$system_installed_packages" ]; then
+      show_info "System installed packages:"
+      echo "$(basename $system_installed_packages)"
+    fi
+  fi
+}
+
+# Function to run a package
+run_package() {
+  local package_name="$1"
+  local package_path=""
+
+  if [ -d "$USER_INSTALLED_DIR/$package_name" ]; then
+    package_path="$USER_INSTALLED_DIR/$package_name"
+  elif [ -d "$SYSTEM_INSTALLED_DIR/$package_name" ]; then
+    package_path="$SYSTEM_INSTALLED_DIR/$package_name"
+  else
+    show_error "Package $package_name is not installed"
+    return 1
+  fi
+
+  local execute_script="$package_path/execute.sh"
+
+  if [ ! -f "$execute_script" ]; then
+    show_error "Failed to run package $package_name. execute.sh not found"
+    return 1
+  fi
+
+  show_info "Running package $package_name"
+
+  chmod +x "$execute_script"
+  "$execute_script"
+}
+
+# Function to update a package or all outdated packages
+update_package() {
+  local package_name="$1"
+  
+  # If no package name is provided, update all outdated packages
+  if [ -z "$package_name" ]; then
+    local outdated_packages=()
+    
+    # Loop through all installed packages
+    for package_dir in "$USER_INSTALLED_DIR"/* "$SYSTEM_INSTALLED_DIR"/*; do
+      if [ -d "$package_dir" ]; then
+        local package_name="$(basename "$package_dir")"
+        local installed_version="$(get_installed_version "$package_name")"
+        local latest_version="$(get_latest_version "$package_name")"
+        
+        # Compare installed version with latest version
+        if [ "$installed_version" != "$latest_version" ]; then
+          outdated_packages+=("$package_name")
+        fi
+      fi
+    done
+    
+    # If no outdated packages found, show message and return
+    if [ "${#outdated_packages[@]}" -eq 0 ]; then
+      show_info "No outdated packages found"
+      return
+    fi
+    
+    # Update all outdated packages
+    for package_name in "${outdated_packages[@]}"; do
+      update_package "$package_name"
+    done
+    
+    return
+  fi
+  
+  # Check if the package is installed
+  if [ ! -d "$USER_INSTALLED_DIR/$package_name" ] && [ ! -d "$SYSTEM_INSTALLED_DIR/$package_name" ]; then
+    show_error "Package $package_name is not installed"
+    return 1
+  fi
+  
+  local package_arch="$(uname -m)"
+  local installed_version="$(get_installed_version "$package_name")"
+  local latest_version="$(get_latest_version "$package_name")"
+  
+  # Compare installed version with latest version
+  if [ "$installed_version" == "$latest_version" ]; then
+    show_info "Package $package_name is already up to date (version $installed_version)"
+    return
+  fi
+  
+  # Download the updated package
+  show_info "Updating package $package_name from version $installed_version to $latest_version"
+  if ! download_package "$package_name" "$package_arch"; then
+    show_error "Failed to update package $package_name"
+    return 1
+  fi
+  
+  # Remove the old package
+  if ! rm -rf "$USER_INSTALLED_DIR/$package_name" "$SYSTEM_INSTALLED_DIR/$package_name"; then
+    show_error "Failed to remove old package $package_name"
+    return 1
+  fi
+  
+  # Install the updated package
+  show_info "Installing updated package $package_name (version $latest_version)"
+  install_package "$package_name"
+  
+  show_info "Package $package_name has been successfully updated to version $latest_version"
+}
+
+# Main script logic
+if [ "$#" -eq 0 ]; then
+  show_error "Usage: homebrew [options] <command> [packages]"
+  exit 1
+fi
+
+while [ "$#" -gt 0 ]; do
+  case "$1" in
+    -i|--install)
+      install_package "$2"
+      shift
+      ;;
+    -d|--delete|--remove)
+      remove_package "$2"
+      shift
+      ;;
+    -l|--list)
+      list_packages
+      ;;
+    -r|--run)
+      run_package "$2"
+      shift
+      ;;
+    -u|--update)
+      update_packages
+      ;;
+    *)
+      show_error "Unknown option or command: $1"
+      exit 1
+      ;;
+  esac
+  shift
+done

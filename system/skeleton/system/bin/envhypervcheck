@@ -1,0 +1,6 @@
+#!/system/bin/sh
+if grep -q hypervisor /proc/self/status; then
+  echo true
+else
+  echo false
+fi

@@ -1,0 +1,29 @@
+#!/system/bin/sh
+
+# Check if user is running as root
+if [ "$(id -u)" -ne 0 ]; then
+  echo "This command must be run as root."
+  exit 1
+fi
+
+function show_usb {
+  # Re-enable the USB gadget
+  echo $(ls /sys/class/udc) > /sys/kernel/config/usb_gadget/g1/UDC
+}
+
+function hide_usb {
+  # Disable the USB gadget
+  echo "" > /sys/kernel/config/usb_gadget/g1/UDC
+}
+
+case "$1" in
+  enable)
+    show_usb "$2"
+    ;;
+  disable)
+    hide_usb "$2"
+    ;;
+  *)
+    echo "Usage: $0 {enable|disable}"
+    ;;
+esac

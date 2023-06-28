@@ -1,0 +1,15 @@
+#!/system/bin/sh
+if [[ $# -ne 1 ]]; then
+  echo "Usage: b2g-install-app <zip_file>"
+  exit 1
+fi
+# Extract the app ID from the manifest.webapp file in the ZIP file
+app_id=$(unzip -p "$1" manifest.webapp | grep '"id":' | cut -d'"' -f4)
+# Copy the ZIP file to the device's webapps directory
+sudo cp "$1" /system/b2g/profile/webapps/"$app_id".zip
+# Unzip the app in the device's webapps directory
+sudo unzip /system/b2g/profile/webapps/"$app_id".zip \
+  -d /system/b2g/profile/webapps/"$app_id"
+# Clean up the ZIP file
+sudo mv /system/b2g/profile/webapps/"$app_id".zip \
+  /system/b2g/profile/webapps/"$app_id"/application.zip

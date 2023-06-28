@@ -1,0 +1,39 @@
+#!/system/bin/sh
+
+function service_manager_start {
+  systemctl start $1
+}
+
+function service_manager_stop {
+  systemctl stop $1
+}
+
+function service_manager_restart {
+  systemctl restart $1
+}
+
+function service_manager_list {
+  systemctl list-unit-files --type=service | awk '{print $1}' | tail \
+    -n +2
+}
+
+case "$1" in
+  start)
+    service_manager_start $2
+    ;;
+  stop)
+    service_manager_stop $2
+    ;;
+  restart)
+    service_manager_restart $2
+    ;;
+  list)
+    service_manager_list
+    ;;
+  *)
+    echo "Usage: $0 {start|stop|restart|list} [service-name]"
+    exit 1
+    ;;
+esac
+
+exit 0

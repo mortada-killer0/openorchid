@@ -1,0 +1,2 @@
+#!/system/bin/sh
+tail -f /data/logger/syslog

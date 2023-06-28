@@ -1,0 +1,6 @@
+#!/system/bin/sh
+if [ -f /run/live/medium ]; then
+  echo true
+else
+  echo false
+fi

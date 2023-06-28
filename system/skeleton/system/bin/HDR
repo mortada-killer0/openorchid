@@ -1,0 +1,69 @@
+#!/system/bin/sh
+
+# Check if wlr-randr is installed
+if ! command -v wlr-randr >/dev/null 2>&1; then
+  echo "Error: wlr-randr is not installed. Please install wlr-randr to use this script."
+  exit 1
+fi
+
+# Function to enable HDR for a specific output
+enable_hdr() {
+  local output="$1"
+  echo "Enabling HDR on output $output"
+  wlr-randr --output "$output" --property hdr_output --set 1
+}
+
+# Function to disable HDR for a specific output
+disable_hdr() {
+  local output="$1"
+  echo "Disabling HDR on output $output"
+  wlr-randr --output "$output" --property hdr_output --set 0
+}
+
+# Check if HDR is enabled or disabled for a specific output
+hdr_status() {
+  local output="$1"
+  local status=$(wlr-randr --output "$output" --property hdr_output \
+    | grep 'value' | awk '{print $3}')
+  echo "HDR status on output $output: $status"
+}
+
+# Specify the action: "enable", "disable", or "status"
+action="$1"
+
+# Specify the output name, or use an empty string for all outputs
+output_name="$2"
+
+case "$action" in
+  enable)
+    if [ -z "$output_name" ]; then
+      for output in $(wlr-randr --list-monitors | awk '{print $1}'); do
+        enable_hdr "$output"
+      done
+    else
+      enable_hdr "$output_name"
+    fi
+    ;;
+  disable)
+    if [ -z "$output_name" ]; then
+      for output in $(wlr-randr --list-monitors | awk '{print $1}'); do
+        disable_hdr "$output"
+      done
+    else
+      disable_hdr "$output_name"
+    fi
+    ;;
+  status)
+    if [ -z "$output_name" ]; then
+      for output in $(wlr-randr --list-monitors | awk '{print $1}'); do
+        hdr_status "$output"
+      done
+    else
+      hdr_status "$output_name"
+    fi
+    ;;
+  *)
+    echo "Usage: $0 {enable|disable|status} [output]"
+    exit 1
+    ;;
+esac

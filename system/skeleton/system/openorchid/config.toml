@@ -1,0 +1,36 @@
+[general]
+host = "127.0.0.1"
+port = 8081
+message_max_time = 10 # In ms.
+verbose_log = true
+log_path = "/data/logger"
+remote_services_config = "/system/openorchid/remote/config.toml"
+remote_services_path = "/system/openorchid/remote"
+socket_path = "/data/local/tmp/api-daemon-socket"
+
+[http]
+root_path = "/system/openorchid/http_root"
+
+[telemetry]
+enabled = false
+token_uri = ""
+metrics_uri = ""
+
+[vhost]
+root_path = "/data/local/webapps/installed"
+csp = "default-src * data: blob:; script-src 'self' http://127.0.0.1:8081 http://shared.localhost:8081; object-src 'none'; style-src 'self' 'unsafe-inline' http://shared.localhost:8081"
+
+[apps_service]
+root_path = "/data/local/webapps"
+data_path = "/data/local/webapps"
+uds_path = "/data/local/tmp/apps_service_uds.sock"
+cert_type = "production"
+updater_socket = "/data/local/tmp/updater_socket"
+user_agent = "Mozilla/5.0 (Mobile; rv:113.0) Gecko/113.0 Firefox/113.0 OpenOrchid/1.0"
+allow_remove_preloaded = true
+
+[content_manager]
+storage_path = "/sdcard"
+
+[dweb]
+storage_path = "/sdcard/.unsafe_dweb"

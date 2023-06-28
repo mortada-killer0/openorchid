@@ -1,0 +1,20 @@
+# Enable debug symbols for easier debugging (optional)
+ac_add_options --enable-debug
+
+# Enable optimized build (optional)
+ac_add_options --enable-optimize
+
+# Enable the JIT compiler (optional)
+ac_add_options --enable-jit
+
+# Enable hardware acceleration (optional)
+ac_add_options --enable-alsa
+ac_add_options --enable-gstreamer
+ac_add_options --enable-ogg
+ac_add_options --enable-ffmpeg
+
+# Set the number of parallel build processes to speed up compilation
+mk_add_options MOZ_MAKE_FLAGS="-j$(nproc)"
+
+# Specify the path where the built Firefox binaries will be installed
+mk_add_options MOZ_OBJDIR=/system/b2g

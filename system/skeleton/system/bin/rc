@@ -1,0 +1,62 @@
+#!/bin/bash
+
+RC_FILE="$1"
+
+if -z $RC_FILE; then
+  echo "Usage: $0 <rc_file>"
+  exit 1
+fi
+
+# Function to execute a command as a specified user and group
+run_as() {
+  local cmd="$1"
+  local user="$2"
+  local group="$3"
+  su "$user" -c "sg $group -c '$cmd'"
+}
+
+# Parse the rc file and execute the commands
+while read line; do
+  # Ignore comments and empty lines
+  if [[ "$line" =~ ^(\s*#|\s*)$ ]]; then
+    continue
+  fi
+
+  # Handle service commands
+  if [[ "$line" =~ ^service\s+(\S+)\s+(\S+)\s*$ ]]; then
+    service_name="${BASH_REMATCH[1]}"
+    service_cmd="${BASH_REMATCH[2]}"
+    user=""
+    group=""
+
+    # Parse optional user and group
+    while read service_line; do
+      if [[ "$service_line" =~ ^\s*user\s+(\S+)\s*$ ]]; then
+        user="${BASH_REMATCH[1]}"
+      elif [[ "$service_line" =~ ^\s*group\s+(\S+)\s*$ ]]; then
+        group="${BASH_REMATCH[1]}"
+      elif [[ "$service_line" =~ ^\s*(oneshot|disabled)\s*$ ]]; then
+        break
+      fi
+    done <<< "$(grep -A 2 -m 1 "^service $service_name " $RC_FILE)"
+
+    # Run the service command as the specified user and group
+    if [[ "$user" != "" && "$group" != "" ]]; then
+      run_as "$service_cmd" "$user" "$group"
+    else
+      exec $COMMAND_PREFIX $service_cmd
+    fi
+
+    continue
+  elif [[ "$line" =~ ^command\s+(\S+)\s+(.*)$ ]]
+    command_name="${BASH_REMATCH[1]}"
+    command_args="${BASH_REMATCH[2]}"
+    run_as "$command_name $command_args" root root
+    continue
+  else
+    exec $COMMAND_PREFIX "$line"
+  fi
+
+  # Unknown command
+  echo "Unknown command: $line" >&2
+done < $RC_FILE

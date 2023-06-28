@@ -1,0 +1,50 @@
+#!/bin/bash
+
+export OPENORCHID_SRC_DIR="$(pwd)"
+export BUILD_STAGE_DIR="$OPENORCHID_SRC_DIR/build_stage"
+export ROOTFS_DIR="$BUILD_STAGE_DIR/rootfs"
+export SKELETON_PATH="$OPENORCHID_SRC_DIR/system/skeleton"
+
+if [ "$1" == "defconfig" ]; then
+  cp -f "$OPENORCHID_SRC_DIR/.defconfig" "$OPENORCHID_SRC_DIR/.config"
+fi
+
+if [ ! -e "$OPENORCHID_SRC_DIR/.config" ]; then
+  echo "No configuration file found. Create one using '$0 defconfig' or manually."
+  exit 1;
+fi
+
+source "$OPENORCHID_SRC_DIR/.config"
+
+mkdir -p "$BUILD_STAGE_DIR"
+mkdir -p "$BUILD_STAGE_DIR/boot"
+mkdir -p "$ROOTFS_DIR"
+mkdir -p "$OPENORCHID_SRC_DIR/logs"
+rm -rf "$ROOTFS_DIR"
+mkdir -p "$ROOTFS_DIR"
+cp -rf "$SKELETON_PATH/"* "$ROOTFS_DIR"
+
+for buildscript in $(ls build.*.sh); do
+  echo "Executing build script $buildscript..."
+  exec "$buildscript" > "$OPENORCHID_SRC_DIR/logs/$buildscript.txt" &
+done
+
+for dir in $PACKAGE_DIRS $DEVICE_DIRS; do
+  for package in $(cd $OPENORCHID_SRC_DIR/$dir && ls && cd ..); do
+    uppercase_package=$(echo "$package" | tr '[:lower:]' '[:upper:]')
+    declare -n package_status="PACKAGE_$uppercase_package"
+    if [ "$package_status" = "y" ]; then
+      echo "Executing scripts for $package..."
+
+      for script in $(ls "$OPENORCHID_SRC_DIR/$dir/$package"/*.sh); do
+        echo "Running script: $script"
+        exec "$script" > "$OPENORCHID_SRC_DIR/logs/$package.txt" &
+        wait
+      done
+    else
+      echo "Not executing scripts for $package"
+    fi
+  done
+
+  cd ..
+done

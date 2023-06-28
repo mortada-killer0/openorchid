@@ -1,0 +1,48 @@
+#!/system/bin/sh
+
+function list_packages {
+  homebrew --list
+}
+
+function package_info {
+  homebrew --info $1
+}
+
+function install_package {
+  homebrew --install $1
+}
+
+function uninstall_package {
+  homebrew --remove $1
+}
+
+case "$1" in
+  list)
+    list_packages
+    ;;
+  info)
+    if [ -z "$2" ]; then
+      echo "Please specify a package name."
+    else
+      package_info $2
+    fi
+    ;;
+  install)
+    if [ -z "$2" ]; then
+      echo "Please specify a package name."
+    else
+      install_package $2
+    fi
+    ;;
+  uninstall)
+    if [ -z "$2" ]; then
+      echo "Please specify a package name."
+    else
+      uninstall_package $2
+    fi
+    ;;
+  *)
+    echo "Usage: $0 {list|info|install|uninstall} [<package>]"
+    exit 1
+    ;;
+esac

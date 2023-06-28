@@ -1,0 +1,29 @@
+#!/system/bin/sh
+JSON_FILE="$HOME/.b2g/settings.json"
+case "$1" in
+  get)
+    # Get the value of the specified setting
+    SETTING_VALUE=$(grep -o "\"$2\":[^,}]*" $JSON_FILE | sed 's/^.*://' | tr -d '[:space:]' | tr -d '"')
+    echo "$2 = $SETTING_VALUE"
+    ;;
+  set)
+    # Set the value of the specified setting
+    SETTING_LINE=$(grep -n "\"$2\":" $JSON_FILE | cut -d: -f1)
+    if [ -n "$SETTING_LINE" ]; then
+      # Check if the value is boolean
+      if [ "$3" == "true" ] || [ "$3" == "false" ]; then
+        sed -i "${SETTING_LINE}s/:[^,}]*//;${SETTING_LINE}s/$/, $3/" $JSON_FILE
+      else
+        sed -i "${SETTING_LINE}s/:[^,}]*//;${SETTING_LINE}s/$/, \"$3\"/" $JSON_FILE
+      fi
+      echo "Set $2 to $3"
+    else
+      echo "Setting $2 not found in $JSON_FILE"
+      exit 1
+    fi
+    ;;
+  *)
+    echo "Usage: $0 {get|set} <setting_name> [setting_value]"
+    exit 1
+    ;;
+esac

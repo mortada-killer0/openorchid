@@ -1,0 +1,1 @@
+root=LABEL=system_b rootwait ro console=ttyS0,11082 quiet splash splashimage=/system/media/boot_logo.png

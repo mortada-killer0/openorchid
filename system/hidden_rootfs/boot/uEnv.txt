@@ -1,0 +1,1 @@
+bootcmd $(cat bootargs.txt)

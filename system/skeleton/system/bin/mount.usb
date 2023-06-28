@@ -1,0 +1,5 @@
+#!/system/bin/sh
+if mount | grep -q '/data/media/usb'; then
+  umount /data/media/usb
+fi
+mount "$1" /data/media/usb
