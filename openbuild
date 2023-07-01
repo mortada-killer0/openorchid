@@ -7,11 +7,12 @@ export SKELETON_PATH="$OPENORCHID_SRC_DIR/system/skeleton"
 
 if [ "$1" == "defconfig" ]; then
   cp -f "$OPENORCHID_SRC_DIR/.defconfig" "$OPENORCHID_SRC_DIR/.config"
+  exit 0
 fi
 
 if [ ! -e "$OPENORCHID_SRC_DIR/.config" ]; then
   echo "No configuration file found. Create one using '$0 defconfig' or manually."
-  exit 1;
+  exit 1
 fi
 
 source "$OPENORCHID_SRC_DIR/.config"
@@ -24,9 +25,9 @@ rm -rf "$ROOTFS_DIR"
 mkdir -p "$ROOTFS_DIR"
 cp -rf "$SKELETON_PATH/"* "$ROOTFS_DIR"
 
-for buildscript in $(ls build.*.sh); do
+for buildscript in $(ls "$OPENORCHID_SRC_DIR/build.*.sh"); do
   echo "Executing build script $buildscript..."
-  exec "$buildscript" > "$OPENORCHID_SRC_DIR/logs/$buildscript.txt" &
+  exec "$buildscript" > "$OPENORCHID_SRC_DIR/logs/$buildscript.txt"
 done
 
 for dir in $PACKAGE_DIRS $DEVICE_DIRS; do
